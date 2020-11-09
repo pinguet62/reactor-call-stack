@@ -11,10 +11,10 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static fr.pinguet62.reactorstacklogger.AnnotationInterceptorTest.SampleComponent;
+import static fr.pinguet62.reactorstacklogger.TestUtils.match;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(SpringExtension.class)
@@ -52,9 +52,7 @@ class AnnotationInterceptorTest {
                 .expectAccessibleContext()
                 .assertThat(context -> {
                     CallStack callStack = context.get(StackContext.KEY);
-                    assertThat(callStack.getName(), is("mono"));
-                    assertThat(callStack.getTime(), is(notNullValue()));
-                    assertThat(callStack.getChildren(), is(empty()));
+                    assertThat(callStack, match(is("mono"), is(empty())));
                 })
                 .then()
                 .verifyComplete();
@@ -67,9 +65,7 @@ class AnnotationInterceptorTest {
                 .expectAccessibleContext()
                 .assertThat(context -> {
                     CallStack callStack = context.get(StackContext.KEY);
-                    assertThat(callStack.getName(), is("flux"));
-                    assertThat(callStack.getTime(), is(notNullValue()));
-                    assertThat(callStack.getChildren(), is(empty()));
+                    assertThat(callStack, match(is("flux"), is(empty())));
                 })
                 .then()
                 .verifyComplete();

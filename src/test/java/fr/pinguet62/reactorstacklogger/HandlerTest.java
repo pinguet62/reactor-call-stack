@@ -13,11 +13,11 @@ import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToFlux;
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToMono;
 import static fr.pinguet62.reactorstacklogger.Handler.doWithCallStackFlux;
 import static fr.pinguet62.reactorstacklogger.Handler.doWithCallStackMono;
+import static fr.pinguet62.reactorstacklogger.TestUtils.match;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 class HandlerTest {
     @Nested
@@ -28,9 +28,7 @@ class HandlerTest {
             Mono<String> mono = Mono.just("first");
             StepVerifier.create(mono.transform(doWithCallStackMono(rootCallStack -> {
                 called.set(true);
-                assertThat(rootCallStack.getName(), is("<root>"));
-                assertThat(rootCallStack.getTime(), is(notNullValue()));
-                assertThat(rootCallStack.getChildren(), is(empty()));
+                assertThat(rootCallStack, match(is("<root>"), is(empty())));
             })))
                     .expectNext("first")
                     .verifyComplete();
@@ -45,15 +43,10 @@ class HandlerTest {
                             .transform(appendCallStackToMono("child")));
             StepVerifier.create(mono.transform(doWithCallStackMono(rootCallStack -> {
                 called.set(true);
-                assertThat(rootCallStack.getName(), is("<root>"));
-                assertThat(rootCallStack.getTime(), is(notNullValue()));
-                assertThat(rootCallStack.getChildren(), hasSize(1));
-                {
-                    CallStack childCallStack = rootCallStack.getChildren().get(0);
-                    assertThat(childCallStack.getName(), is("child"));
-                    assertThat(childCallStack.getTime(), is(notNullValue()));
-                    assertThat(childCallStack.getChildren(), is(empty()));
-                }
+                assertThat(rootCallStack, match(
+                        is("<root>"),
+                        contains(
+                                match(is("child"), is(empty())))));
             })))
                     .expectNext("second")
                     .verifyComplete();
@@ -69,9 +62,7 @@ class HandlerTest {
             Flux<String> flux = Flux.just("first");
             StepVerifier.create(flux.transform(doWithCallStackFlux(rootCallStack -> {
                 called.incrementAndGet();
-                assertThat(rootCallStack.getName(), is("<root>"));
-                assertThat(rootCallStack.getTime(), is(notNullValue()));
-                assertThat(rootCallStack.getChildren(), is(empty()));
+                assertThat(rootCallStack, match(is("<root>"), is(empty())));
             })))
                     .expectNext("first")
                     .verifyComplete();
@@ -86,15 +77,10 @@ class HandlerTest {
                             .transform(appendCallStackToFlux("child")));
             StepVerifier.create(flux.transform(doWithCallStackFlux(rootCallStack -> {
                 called.incrementAndGet();
-                assertThat(rootCallStack.getName(), is("<root>"));
-                assertThat(rootCallStack.getTime(), is(notNullValue()));
-                assertThat(rootCallStack.getChildren(), hasSize(1));
-                {
-                    CallStack childCallStack = rootCallStack.getChildren().get(0);
-                    assertThat(childCallStack.getName(), is("child"));
-                    assertThat(childCallStack.getTime(), is(notNullValue()));
-                    assertThat(childCallStack.getChildren(), is(empty()));
-                }
+                assertThat(rootCallStack, match(
+                        is("<root>"),
+                        contains(
+                                match(is("child"), is(empty())))));
             })))
                     .expectNext("second", "third")
                     .verifyComplete();

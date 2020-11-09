@@ -8,11 +8,11 @@ import reactor.test.StepVerifier;
 
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToFlux;
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToMono;
+import static fr.pinguet62.reactorstacklogger.TestUtils.match;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 class AppenderTest {
     @Nested
@@ -26,9 +26,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack.getName(), is("single"));
-                        assertThat(rootCallStack.getTime(), is(notNullValue()));
-                        assertThat(rootCallStack.getChildren(), is(empty()));
+                        assertThat(rootCallStack, match(is("single"), is(empty())));
                     }).then()
                     .verifyComplete();
         }
@@ -44,15 +42,10 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack.getName(), is("parent"));
-                        assertThat(rootCallStack.getTime(), is(notNullValue()));
-                        assertThat(rootCallStack.getChildren(), hasSize(1));
-                        {
-                            CallStack firstCallStack = rootCallStack.getChildren().get(0);
-                            assertThat(firstCallStack.getName(), is("child"));
-                            assertThat(firstCallStack.getTime(), is(notNullValue()));
-                            assertThat(firstCallStack.getChildren(), is(empty()));
-                        }
+                        assertThat(rootCallStack, match(
+                                is("parent"),
+                                contains(
+                                        match(is("child"), is(empty())))));
                     }).then()
                     .verifyComplete();
         }
@@ -69,9 +62,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack.getName(), is("single"));
-                        assertThat(rootCallStack.getTime(), is(notNullValue()));
-                        assertThat(rootCallStack.getChildren(), is(empty()));
+                        assertThat(rootCallStack, match(is("single"), is(empty())));
                     }).then()
                     .verifyComplete();
         }
@@ -87,21 +78,11 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack.getName(), is("parent"));
-                        assertThat(rootCallStack.getTime(), is(notNullValue()));
-                        assertThat(rootCallStack.getChildren(), hasSize(2));
-                        {
-                            CallStack child1CallStack = rootCallStack.getChildren().get(0);
-                            assertThat(child1CallStack.getName(), is("child-1"));
-                            assertThat(child1CallStack.getTime(), is(notNullValue()));
-                            assertThat(child1CallStack.getChildren(), is(empty()));
-                        }
-                        {
-                            CallStack child2CallStack = rootCallStack.getChildren().get(1);
-                            assertThat(child2CallStack.getName(), is("child-2"));
-                            assertThat(child2CallStack.getTime(), is(notNullValue()));
-                            assertThat(child2CallStack.getChildren(), is(empty()));
-                        }
+                        assertThat(rootCallStack, match(
+                                is("parent"),
+                                contains(
+                                        match(is("child-1"), is(empty())),
+                                        match(is("child-2"), is(empty())))));
                     }).then()
                     .verifyComplete();
         }
