@@ -1,44 +1,33 @@
 package fr.pinguet62.reactorstacklogger;
 
-import org.springframework.util.StopWatch;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-import java.util.function.LongConsumer;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 public class StopWatchUtils {
 
-    public static <T> UnaryOperator<Mono<T>> doOnTerminateTimeMono(LongConsumer msConsumer) {
+    public static <T> UnaryOperator<Mono<T>> doOnTerminateTimeMono(Consumer<Duration> consumer) {
         return mono -> {
-            StopWatch stopWatch = new StopWatch(UUID.randomUUID().toString());
+            AtomicReference<Instant> start = new AtomicReference<>();
             return mono
-                    .doOnSubscribe(subscription -> stopWatch.start())
-                    .doOnCancel(() -> {
-                        stopWatch.stop();
-                        msConsumer.accept(stopWatch.getTotalTimeMillis());
-                    })
-                    .doOnTerminate(() -> {
-                        stopWatch.stop();
-                        msConsumer.accept(stopWatch.getTotalTimeMillis());
-                    });
+                    .doOnSubscribe(subscription -> start.set(Instant.now()))
+                    .doOnCancel(() -> consumer.accept(Duration.between(start.get(), Instant.now())))
+                    .doOnTerminate(() -> consumer.accept(Duration.between(start.get(), Instant.now())));
         };
     }
 
-    public static <T> UnaryOperator<Flux<T>> doOnTerminateTimeFlux(LongConsumer msConsumer) {
+    public static <T> UnaryOperator<Flux<T>> doOnTerminateTimeFlux(Consumer<Duration> consumer) {
         return flux -> {
-            StopWatch stopWatch = new StopWatch();
+            AtomicReference<Instant> start = new AtomicReference<>();
             return flux
-                    .doOnSubscribe(subscription -> stopWatch.start())
-                    .doOnCancel(() -> {
-                        stopWatch.stop();
-                        msConsumer.accept(stopWatch.getTotalTimeMillis());
-                    })
-                    .doOnTerminate(() -> {
-                        stopWatch.stop();
-                        msConsumer.accept(stopWatch.getTotalTimeMillis());
-                    });
+                    .doOnSubscribe(subscription -> start.set(Instant.now()))
+                    .doOnCancel(() -> consumer.accept(Duration.between(start.get(), Instant.now())))
+                    .doOnTerminate(() -> consumer.accept(Duration.between(start.get(), Instant.now())));
         };
     }
 }

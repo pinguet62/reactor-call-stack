@@ -8,12 +8,13 @@ import reactor.core.publisher.MonoProcessor;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.function.LongConsumer;
+import java.util.function.Consumer;
 
 import static fr.pinguet62.reactorstacklogger.StopWatchUtils.doOnTerminateTimeFlux;
 import static fr.pinguet62.reactorstacklogger.StopWatchUtils.doOnTerminateTimeMono;
-import static org.mockito.Mockito.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -24,8 +25,8 @@ class StopWatchUtilsTest {
     class doOnTerminateTimeMono {
         @Test
         void just() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             Mono<String> mono = Mono.just("value")
                     .transform(doOnTerminateTimeMono(consumer));
@@ -33,39 +34,39 @@ class StopWatchUtilsTest {
             StepVerifier.create(mono)
                     .expectNext("value")
                     .verifyComplete();
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
 
         @Test
         void empty() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             Mono<Object> mono = Mono.empty()
                     .transform(doOnTerminateTimeMono(consumer));
 
             StepVerifier.create(mono)
                     .verifyComplete();
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
 
         @Test
         void error() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             Mono<Object> mono = Mono.error(new IllegalArgumentException("test"))
                     .transform(doOnTerminateTimeMono(consumer));
 
             StepVerifier.create(mono)
                     .verifyError(IllegalArgumentException.class);
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
 
         @Test
         void cancel() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             TestPublisher<Object> testPublisher = TestPublisher.create();
 
@@ -75,7 +76,7 @@ class StopWatchUtilsTest {
 
             mono.subscribe();
             mono.cancel();
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
     }
 
@@ -83,8 +84,8 @@ class StopWatchUtilsTest {
     class doOnTerminateTimeFlux {
         @Test
         void just() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             Flux<String> flux = Flux.just("first", "second", "third")
                     .transform(doOnTerminateTimeFlux(consumer));
@@ -92,26 +93,26 @@ class StopWatchUtilsTest {
             StepVerifier.create(flux)
                     .expectNext("first", "second", "third")
                     .verifyComplete();
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
 
         @Test
         void empty() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             Flux<Object> flux = Flux.empty()
                     .transform(doOnTerminateTimeFlux(consumer));
 
             StepVerifier.create(flux)
                     .verifyComplete();
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
 
         @Test
         void error() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             Flux<Object> flux = TestPublisher.create()
                     .emit("first")
@@ -122,13 +123,13 @@ class StopWatchUtilsTest {
 
             StepVerifier.create(flux)
                     .verifyError(IllegalArgumentException.class);
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
 
         @Test
         void cancel() {
-            LongConsumer consumer = mock(LongConsumer.class);
-            doNothing().when(consumer).accept(anyLong());
+            Consumer<Duration> consumer = mock(Consumer.class);
+            doNothing().when(consumer).accept(any());
 
             TestPublisher<Object> testPublisher = TestPublisher.create();
 
@@ -139,7 +140,7 @@ class StopWatchUtilsTest {
 
             mono.subscribe();
             mono.cancel();
-            verify(consumer).accept(anyLong());
+            verify(consumer).accept(any());
         }
     }
 }

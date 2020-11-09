@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +21,7 @@ public class CallStack {
     private final List<CallStack> children;
 
     @Setter(PACKAGE)
-    private Long time;
+    private Duration time;
 
     CallStack(String name) {
         this.name = name;

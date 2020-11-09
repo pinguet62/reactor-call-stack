@@ -4,11 +4,13 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
+import java.time.Duration;
+
 import static org.hamcrest.Matchers.any;
 
 public class TestUtils {
 
-    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Long> timeMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
+    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Duration> timeMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
         return new TypeSafeDiagnosingMatcher<CallStack>() {
             @Override
             protected boolean matchesSafely(CallStack callStack, Description mismatch) {
@@ -43,7 +45,7 @@ public class TestUtils {
     }
 
     public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
-        return match(nameMatcher, any(Long.class), childrenMatcher);
+        return match(nameMatcher, any(Duration.class), childrenMatcher);
     }
 
     public static String format(CallStack callStack) {
