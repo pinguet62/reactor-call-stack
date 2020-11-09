@@ -1,4 +1,6 @@
-# Reactor Stack-logger
+# Reactor Call-Stack
+
+[![https://github.com/pinguet62/reactor-call-stack/actions?workflow=CI](https://github.com/pinguet62/reactor-call-stack/workflows/CI/badge.svg)](https://github.com/pinguet62/reactor-call-stack/actions?query=workflow%3ACI+branch%3Amain)
 
 ## The need of "complete call stack hierarchy"
 
