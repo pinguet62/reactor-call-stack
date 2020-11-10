@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.test.publisher.TestPublisher;
+import reactor.util.context.Context;
 
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToFlux;
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToMono;
@@ -13,15 +15,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 class AppenderTest {
     @Nested
     class appendCallStackToMono {
         @Test
         void withSingleContext() {
-            Mono<String> mono = Mono.just("result")
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Mono<String> mono = testPublisher.mono()
                     .transform(appendCallStackToMono("single"));
             StepVerifier.create(mono)
+                    .then(() -> testPublisher.emit("result").complete())
                     .expectNext("result")
                     .expectAccessibleContext()
                     .assertThat(context -> {
@@ -33,11 +38,13 @@ class AppenderTest {
 
         @Test
         void withMultipleContexts() {
-            Mono<String> mono = Mono.just("first")
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Mono<String> mono = testPublisher.mono()
                     .flatMap(it -> Mono.just("second")
                             .transform(appendCallStackToMono("child")))
                     .transform(appendCallStackToMono("parent"));
             StepVerifier.create(mono)
+                    .then(() -> testPublisher.emit("first").complete())
                     .expectNext("second")
                     .expectAccessibleContext()
                     .assertThat(context -> {
@@ -46,6 +53,36 @@ class AppenderTest {
                                 is("parent"),
                                 contains(
                                         match(is("child"), is(empty())))));
+                    }).then()
+                    .verifyComplete();
+        }
+
+        @Test
+        void emptyPublisher() {
+            Mono<String> mono = Mono.<String>empty()
+                    .transform(appendCallStackToMono("single"));
+            StepVerifier.create(mono)
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, is(notNullValue()));
+                    }).then()
+                    .verifyComplete();
+        }
+
+        @Test
+        void shouldNotReplaceExistingContext() {
+            Mono<String> mono = Mono.just("value")
+                    .subscriberContext(Context.of("first", "A"))
+                    .transform(appendCallStackToMono("<root>"))
+                    .subscriberContext(Context.of("second", "B"));
+            StepVerifier.create(mono)
+                    .expectNext("value")
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        assertThat(context.get("first"), is("A"));
+                        assertThat(context.get(StackContext.KEY), is(notNullValue()));
+                        assertThat(context.get("second"), is("B"));
                     }).then()
                     .verifyComplete();
         }
@@ -83,6 +120,36 @@ class AppenderTest {
                                 contains(
                                         match(is("child-1"), is(empty())),
                                         match(is("child-2"), is(empty())))));
+                    }).then()
+                    .verifyComplete();
+        }
+
+        @Test
+        void emptyPublisher() {
+            Flux<String> flux = Flux.<String>empty()
+                    .transform(appendCallStackToFlux("single"));
+            StepVerifier.create(flux)
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, is(notNullValue()));
+                    }).then()
+                    .verifyComplete();
+        }
+
+        @Test
+        void shouldNotReplaceExistingContext() {
+            Flux<String> flux = Flux.just("result")
+                    .subscriberContext(Context.of("first", "A"))
+                    .transform(appendCallStackToFlux("<root>"))
+                    .subscriberContext(Context.of("second", "B"));
+            StepVerifier.create(flux)
+                    .expectNext("result")
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        assertThat(context.get("first"), is("A"));
+                        assertThat(context.get(StackContext.KEY), is(notNullValue()));
+                        assertThat(context.get("second"), is("B"));
                     }).then()
                     .verifyComplete();
         }

@@ -14,7 +14,7 @@ import java.util.function.UnaryOperator;
 public class StopWatchUtils {
 
     public static <T> UnaryOperator<Mono<T>> doOnTerminateTimeMono(Consumer<Duration> consumer) {
-        return doOnTerminateTimeMono(() -> Clock.systemDefaultZone(), consumer);
+        return doOnTerminateTimeMono(Clock::systemDefaultZone, consumer);
     }
 
     public static <T> UnaryOperator<Mono<T>> doOnTerminateTimeMono(Supplier<Clock> clock, Consumer<Duration> consumer) {
@@ -28,7 +28,7 @@ public class StopWatchUtils {
     }
 
     public static <T> UnaryOperator<Flux<T>> doOnTerminateTimeFlux(Consumer<Duration> consumer) {
-        return doOnTerminateTimeFlux(() -> Clock.systemDefaultZone(), consumer);
+        return doOnTerminateTimeFlux(Clock::systemDefaultZone, consumer);
     }
 
     public static <T> UnaryOperator<Flux<T>> doOnTerminateTimeFlux(Supplier<Clock> clock, Consumer<Duration> consumer) {
