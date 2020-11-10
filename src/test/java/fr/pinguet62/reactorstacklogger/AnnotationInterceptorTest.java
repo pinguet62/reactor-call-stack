@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static fr.pinguet62.reactorstacklogger.AnnotationInterceptorTest.SampleComponent;
+import static fr.pinguet62.reactorstacklogger.AnnotationInterceptorTest.*;
 import static fr.pinguet62.reactorstacklogger.TestUtils.match;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -20,12 +20,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {
         AnnotationInterceptor.class,
-        SampleComponent.class,
+        SampleMethodsComponent.class,
+        SampleClassComponent.class,
 })
 class AnnotationInterceptorTest {
 
     @TestComponent
-    static class SampleComponent {
+    static class SampleMethodsComponent {
         @AppendCallStack("mono")
         Mono<String> testMono() {
             return Mono.just("value");
@@ -47,12 +48,23 @@ class AnnotationInterceptorTest {
         }
     }
 
+    @TestComponent
+    @AppendCallStack
+    static class SampleClassComponent {
+        Mono<String> test() {
+            return Mono.just("value");
+        }
+    }
+
     @Autowired
-    SampleComponent component;
+    SampleMethodsComponent methodsComponent;
+
+    @Autowired
+    SampleClassComponent classComponent;
 
     @Test
     void mono() {
-        StepVerifier.create(component.testMono())
+        StepVerifier.create(methodsComponent.testMono())
                 .expectNext("value")
                 .expectAccessibleContext()
                 .assertThat(context -> {
@@ -65,7 +77,7 @@ class AnnotationInterceptorTest {
 
     @Test
     void flux() {
-        StepVerifier.create(component.testFlux())
+        StepVerifier.create(methodsComponent.testFlux())
                 .expectNext("first", "second")
                 .expectAccessibleContext()
                 .assertThat(context -> {
@@ -78,17 +90,30 @@ class AnnotationInterceptorTest {
 
     @Test
     void unsupportedReturnType() {
-        assertThrows(RuntimeException.class, () -> component.testUnsupportedReturnType());
+        assertThrows(RuntimeException.class, () -> methodsComponent.testUnsupportedReturnType());
     }
 
     @Test
     void determineName() {
-        StepVerifier.create(component.testDetermineName())
+        StepVerifier.create(methodsComponent.testDetermineName())
                 .expectNext("any")
                 .expectAccessibleContext()
                 .assertThat(context -> {
                     CallStack callStack = context.get(StackContext.KEY);
-                    assertThat(callStack, match(is("SampleComponent.testDetermineName"), is(empty())));
+                    assertThat(callStack, match(is("SampleMethodsComponent.testDetermineName"), is(empty())));
+                })
+                .then()
+                .verifyComplete();
+    }
+
+    @Test
+    void annotatedClass() {
+        StepVerifier.create(classComponent.test())
+                .expectNext("value")
+                .expectAccessibleContext()
+                .assertThat(context -> {
+                    CallStack callStack = context.get(StackContext.KEY);
+                    assertThat(callStack, match(is("SampleClassComponent.test"), is(empty())));
                 })
                 .then()
                 .verifyComplete();
