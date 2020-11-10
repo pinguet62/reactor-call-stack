@@ -19,14 +19,17 @@ public class AnnotationInterceptor {
 
     @Around("@annotation(appendCallStack)")
     public Object intercept(ProceedingJoinPoint proceedingJoinPoint, AppendCallStack appendCallStack) throws Throwable {
+        String stackName = !appendCallStack.value().equals("")
+                ? appendCallStack.value()
+                : proceedingJoinPoint.getSignature().getDeclaringType().getSimpleName() + "." + proceedingJoinPoint.getSignature().getName();
+
         Class<?> methodSignature = ((MethodSignature) proceedingJoinPoint.getSignature()).getReturnType();
         if (methodSignature == Mono.class) {
             return ((Mono<?>) proceedingJoinPoint.proceed())
-                    .transform(appendCallStackToMono(appendCallStack.value()));
+                    .transform(appendCallStackToMono(stackName));
         } else if (methodSignature == Flux.class) {
             return ((Flux<?>) proceedingJoinPoint.proceed())
-                    .transform(appendCallStackToFlux(appendCallStack.value()));
+                    .transform(appendCallStackToFlux(stackName));
         } else throw new UnsupportedOperationException("Not supported type: " + methodSignature);
     }
-
 }

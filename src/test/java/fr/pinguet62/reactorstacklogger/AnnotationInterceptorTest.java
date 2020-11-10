@@ -40,6 +40,11 @@ class AnnotationInterceptorTest {
         String testUnsupportedReturnType() {
             return "any";
         }
+
+        @AppendCallStack
+        Mono<String> testDetermineName() {
+            return Mono.just("any");
+        }
     }
 
     @Autowired
@@ -74,5 +79,18 @@ class AnnotationInterceptorTest {
     @Test
     void unsupportedReturnType() {
         assertThrows(RuntimeException.class, () -> component.testUnsupportedReturnType());
+    }
+
+    @Test
+    void determineName() {
+        StepVerifier.create(component.testDetermineName())
+                .expectNext("any")
+                .expectAccessibleContext()
+                .assertThat(context -> {
+                    CallStack callStack = context.get(StackContext.KEY);
+                    assertThat(callStack, match(is("SampleComponent.testDetermineName"), is(empty())));
+                })
+                .then()
+                .verifyComplete();
     }
 }
