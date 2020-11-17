@@ -16,7 +16,7 @@ import static fr.pinguet62.reactorstacklogger.StackContext.getStack;
  * Create a <i>root</i> {@link CallStack},
  * then execute handler on total time of target {@link Publisher}.
  * <p>
- * Can be used on global {@link org.springframework.web.server.WebFilter} to log request total execute, and stack calls.
+ * Can be used on global {@code org.springframework.web.server.WebFilter} to log request total execute, and stack calls.
  */
 public class Handler {
 
