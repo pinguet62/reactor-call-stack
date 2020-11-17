@@ -10,7 +10,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static fr.pinguet62.reactorstacklogger.AnnotationInterceptorTest.*;
+import static fr.pinguet62.reactorstacklogger.AnnotationInterceptorTest.SampleClassComponent;
+import static fr.pinguet62.reactorstacklogger.AnnotationInterceptorTest.SampleMethodsComponent;
 import static fr.pinguet62.reactorstacklogger.TestUtils.match;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;

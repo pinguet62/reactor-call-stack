@@ -27,7 +27,7 @@ public class Appender {
                                 .doOnNext(callStack::set)
                                 .then(Mono.empty())))
                 .transform(doOnTerminateTimeMono(time -> callStack.get().setTime(time)))
-                .subscriberContext(context -> {
+                .contextWrite(context -> {
                     Optional<CallStack> currentCallStack = context.getOrEmpty(KEY);
                     CallStack nextCallStack = new CallStack(stackName);
                     currentCallStack.ifPresent(current -> current.getChildren().add(nextCallStack));
@@ -44,7 +44,7 @@ public class Appender {
                                 .doOnNext(callStack::set)
                                 .thenMany(Flux.fromIterable(result)))
                 .transform(doOnTerminateTimeFlux(time -> callStack.get().setTime(time)))
-                .subscriberContext(context -> {
+                .contextWrite(context -> {
                     Optional<CallStack> currentCallStack = context.getOrEmpty(KEY);
                     CallStack nextCallStack = new CallStack(stackName);
                     currentCallStack.ifPresent(current -> current.getChildren().add(nextCallStack));

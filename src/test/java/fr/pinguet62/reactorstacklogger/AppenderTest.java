@@ -73,9 +73,9 @@ class AppenderTest {
         @Test
         void shouldNotReplaceExistingContext() {
             Mono<String> mono = Mono.just("value")
-                    .subscriberContext(Context.of("first", "A"))
+                    .contextWrite(Context.of("first", "A"))
                     .transform(appendCallStackToMono("<root>"))
-                    .subscriberContext(Context.of("second", "B"));
+                    .contextWrite(Context.of("second", "B"));
             StepVerifier.create(mono)
                     .expectNext("value")
                     .expectAccessibleContext()
@@ -140,9 +140,9 @@ class AppenderTest {
         @Test
         void shouldNotReplaceExistingContext() {
             Flux<String> flux = Flux.just("result")
-                    .subscriberContext(Context.of("first", "A"))
+                    .contextWrite(Context.of("first", "A"))
                     .transform(appendCallStackToFlux("<root>"))
-                    .subscriberContext(Context.of("second", "B"));
+                    .contextWrite(Context.of("second", "B"));
             StepVerifier.create(flux)
                     .expectNext("result")
                     .expectAccessibleContext()
