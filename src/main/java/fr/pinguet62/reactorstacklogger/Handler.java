@@ -22,18 +22,27 @@ public class Handler {
 
     public static <T> UnaryOperator<Mono<T>> doWithCallStackMono(Consumer<CallStack> handler) {
         AtomicReference<CallStack> callStack = new AtomicReference<>();
-        return mono -> getStack()
-                .doOnNext(callStack::set)
-                .then(mono)
+        return mono -> mono
+                .flatMap(value ->
+                        getStack()
+                                .doOnNext(callStack::set)
+                                .thenReturn(value))
+                .switchIfEmpty(Mono.defer(() ->
+                        getStack()
+                                .doOnNext(callStack::set)
+                                .then(Mono.empty())))
                 .transform(appendCallStackToMono("<root>"))
                 .doOnTerminate(() -> handler.accept(callStack.get()));
     }
 
     public static <T> UnaryOperator<Flux<T>> doWithCallStackFlux(Consumer<CallStack> handler) {
         AtomicReference<CallStack> callStack = new AtomicReference<>();
-        return flux -> getStack()
-                .doOnNext(callStack::set)
-                .thenMany(flux)
+        return flux -> flux
+                .collectList()
+                .flatMapMany(result ->
+                        getStack()
+                                .doOnNext(callStack::set)
+                                .thenMany(Flux.fromIterable(result)))
                 .transform(appendCallStackToFlux("<root>"))
                 .doOnTerminate(() -> handler.accept(callStack.get()));
     }
