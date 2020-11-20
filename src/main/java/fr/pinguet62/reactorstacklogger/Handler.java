@@ -31,6 +31,10 @@ public class Handler {
                         getStack()
                                 .doOnNext(callStack::set)
                                 .then(Mono.empty())))
+                .onErrorResume(error ->
+                        getStack()
+                                .doOnNext(callStack::set)
+                                .then(Mono.error(error)))
                 .transform(appendCallStackToMono("<root>"))
                 .doOnTerminate(() -> handler.accept(callStack.get()));
     }
@@ -43,6 +47,10 @@ public class Handler {
                         getStack()
                                 .doOnNext(callStack::set)
                                 .thenMany(Flux.fromIterable(result)))
+                .onErrorResume(error ->
+                        getStack()
+                                .doOnNext(callStack::set)
+                                .then(Mono.error(error)))
                 .transform(appendCallStackToFlux("<root>"))
                 .doOnTerminate(() -> handler.accept(callStack.get()));
     }

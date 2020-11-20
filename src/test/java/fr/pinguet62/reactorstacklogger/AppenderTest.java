@@ -11,6 +11,7 @@ import reactor.util.context.Context;
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToFlux;
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToMono;
 import static fr.pinguet62.reactorstacklogger.TestUtils.match;
+import static java.util.function.Predicate.isEqual;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -58,19 +59,6 @@ class AppenderTest {
         }
 
         @Test
-        void emptyPublisher() {
-            Mono<String> mono = Mono.<String>empty()
-                    .transform(appendCallStackToMono("single"));
-            StepVerifier.create(mono)
-                    .expectAccessibleContext()
-                    .assertThat(context -> {
-                        CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, is(notNullValue()));
-                    }).then()
-                    .verifyComplete();
-        }
-
-        @Test
         void shouldNotReplaceExistingContext() {
             Mono<String> mono = Mono.just("value")
                     .contextWrite(Context.of("first", "A"))
@@ -85,6 +73,33 @@ class AppenderTest {
                         assertThat(context.get("second"), is("B"));
                     }).then()
                     .verifyComplete();
+        }
+
+        @Test
+        void emptyPublisher() {
+            Mono<String> mono = Mono.<String>empty()
+                    .transform(appendCallStackToMono("single"));
+            StepVerifier.create(mono)
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, is(notNullValue()));
+                    }).then()
+                    .verifyComplete();
+        }
+
+        @Test
+        void error() {
+            Exception exception = new RuntimeException("Oups!");
+            Mono<String> mono = Mono.<String>error(exception)
+                    .transform(appendCallStackToMono("single"));
+            StepVerifier.create(mono)
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, is(notNullValue()));
+                    }).then()
+                    .verifyErrorMatches(isEqual(exception));
         }
     }
 
@@ -125,19 +140,6 @@ class AppenderTest {
         }
 
         @Test
-        void emptyPublisher() {
-            Flux<String> flux = Flux.<String>empty()
-                    .transform(appendCallStackToFlux("single"));
-            StepVerifier.create(flux)
-                    .expectAccessibleContext()
-                    .assertThat(context -> {
-                        CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, is(notNullValue()));
-                    }).then()
-                    .verifyComplete();
-        }
-
-        @Test
         void shouldNotReplaceExistingContext() {
             Flux<String> flux = Flux.just("result")
                     .contextWrite(Context.of("first", "A"))
@@ -152,6 +154,33 @@ class AppenderTest {
                         assertThat(context.get("second"), is("B"));
                     }).then()
                     .verifyComplete();
+        }
+
+        @Test
+        void emptyPublisher() {
+            Flux<String> flux = Flux.<String>empty()
+                    .transform(appendCallStackToFlux("single"));
+            StepVerifier.create(flux)
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, is(notNullValue()));
+                    }).then()
+                    .verifyComplete();
+        }
+
+        @Test
+        void error() {
+            Exception exception = new RuntimeException("Oups!");
+            Flux<String> flux = Flux.<String>error(exception)
+                    .transform(appendCallStackToFlux("single"));
+            StepVerifier.create(flux)
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, is(notNullValue()));
+                    }).then()
+                    .verifyErrorMatches(isEqual(exception));
         }
     }
 }

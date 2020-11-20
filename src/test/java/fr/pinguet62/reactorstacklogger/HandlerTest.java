@@ -14,6 +14,7 @@ import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToMono;
 import static fr.pinguet62.reactorstacklogger.Handler.doWithCallStackFlux;
 import static fr.pinguet62.reactorstacklogger.Handler.doWithCallStackMono;
 import static fr.pinguet62.reactorstacklogger.TestUtils.match;
+import static java.util.function.Predicate.isEqual;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -52,6 +53,21 @@ class HandlerTest {
                     .verifyComplete();
             assertThat(called.get(), is(true));
         }
+
+        @Test
+        void error() {
+            AtomicBoolean called = new AtomicBoolean(false);
+
+            Exception exception = new RuntimeException("Oups!");
+            Mono<String> mono = Mono.error(exception);
+
+            StepVerifier.create(mono.transform(doWithCallStackMono(rootCallStack -> {
+                called.set(true);
+                assertThat(rootCallStack, match(is("<root>"), is(empty())));
+            })))
+                    .verifyErrorMatches(isEqual(exception));
+            assertThat(called.get(), is(true));
+        }
     }
 
     @Nested
@@ -84,6 +100,21 @@ class HandlerTest {
             })))
                     .expectNext("second", "third")
                     .verifyComplete();
+            assertThat(called.get(), is(1));
+        }
+
+        @Test
+        void error() {
+            AtomicInteger called = new AtomicInteger(0);
+
+            Exception exception = new RuntimeException("Oups!");
+            Flux<String> flux = Flux.error(exception);
+
+            StepVerifier.create(flux.transform(doWithCallStackFlux(rootCallStack -> {
+                called.incrementAndGet();
+                assertThat(rootCallStack, match(is("<root>"), is(empty())));
+            })))
+                    .verifyErrorMatches(isEqual(exception));
             assertThat(called.get(), is(1));
         }
     }

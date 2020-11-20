@@ -26,6 +26,10 @@ public class Appender {
                         getStack()
                                 .doOnNext(callStack::set)
                                 .then(Mono.empty())))
+                .onErrorResume(error ->
+                        getStack()
+                                .doOnNext(callStack::set)
+                                .then(Mono.error(error)))
                 .transform(doOnTerminateTimeMono(time -> callStack.get().setTime(time)))
                 .contextWrite(context -> {
                     Optional<CallStack> currentCallStack = context.getOrEmpty(KEY);
@@ -43,6 +47,10 @@ public class Appender {
                         getStack()
                                 .doOnNext(callStack::set)
                                 .thenMany(Flux.fromIterable(result)))
+                .onErrorResume(error ->
+                        getStack()
+                                .doOnNext(callStack::set)
+                                .then(Mono.error(error)))
                 .transform(doOnTerminateTimeFlux(time -> callStack.get().setTime(time)))
                 .contextWrite(context -> {
                     Optional<CallStack> currentCallStack = context.getOrEmpty(KEY);
