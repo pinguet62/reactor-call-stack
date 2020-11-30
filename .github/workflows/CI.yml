@@ -1,23 +1,25 @@
 name: CI
 
-on: [ push ]
+on:
+  push
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - name: Set up JDK 1.8
+      - uses: actions/checkout@v2
+      - name: Set up Java
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Build with Maven
+          server-id: ossrh
+          server-username: OSSRH_USERNAME
+          server-password: OSSRH_PASSWORD
+      - name: Build
         run: mvn -B package
       - name: Deploy SNAPSHOT
         if: github.ref == 'refs/heads/main'
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-        run: |
-          echo "<settings><servers><server><id>ossrh</id><username>${OSSRH_USERNAME}</username><password>${OSSRH_PASSWORD}</password></server></servers></settings>" > deploy-settings.xml
-          mvn deploy -DskipTests -Dgpg.skip --settings deploy-settings.xml
+        run: mvn -B deploy -DskipTests -Dgpg.skip
