@@ -10,7 +10,7 @@
 
     <groupId>fr.pinguet62</groupId>
     <artifactId>reactor-call-stack</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -140,7 +140,7 @@
         <url>https://github.com/pinguet62/reactor-call-stack</url>
         <connection>scm:git:git@github.com:pinguet62/reactor-call-stack.git</connection>
         <developerConnection>scm:git:git@github.com:pinguet62/reactor-call-stack.git</developerConnection>
-        <tag>v1.0.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
