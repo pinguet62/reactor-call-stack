@@ -1,5 +1,6 @@
 package fr.pinguet62.reactorstacklogger;
 
+import fr.pinguet62.reactorstacklogger.CallStack.Status;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -10,7 +11,7 @@ import static org.hamcrest.Matchers.any;
 
 public class TestUtils {
 
-    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Duration> timeMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
+    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Duration> timeMatcher, Matcher<Status> statusMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
         return new TypeSafeDiagnosingMatcher<CallStack>() {
             @Override
             protected boolean matchesSafely(CallStack callStack, Description mismatch) {
@@ -22,6 +23,11 @@ public class TestUtils {
                 if (!timeMatcher.matches(callStack.getTime())) {
                     mismatch.appendDescriptionOf(timeMatcher).appendText(" ");
                     timeMatcher.describeMismatch(callStack.getTime(), mismatch);
+                    return false;
+                }
+                if (!statusMatcher.matches(callStack.getStatus())) {
+                    mismatch.appendDescriptionOf(statusMatcher).appendText(" ");
+                    statusMatcher.describeMismatch(callStack.getStatus(), mismatch);
                     return false;
                 }
                 if (!childrenMatcher.matches(callStack.getChildren())) {
@@ -38,6 +44,7 @@ public class TestUtils {
                         .appendText("(")
                         .appendText("message ").appendDescriptionOf(nameMatcher)
                         .appendText(" and time ").appendDescriptionOf(timeMatcher)
+                        .appendText(" and status ").appendDescriptionOf(statusMatcher)
                         .appendText(" and children ").appendDescriptionOf(childrenMatcher)
                         .appendText(")");
             }
@@ -45,7 +52,11 @@ public class TestUtils {
     }
 
     public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
-        return match(nameMatcher, any(Duration.class), childrenMatcher);
+        return match(nameMatcher, any(Duration.class), any(Status.class), childrenMatcher);
+    }
+
+    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Status> statusMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
+        return match(nameMatcher, any(Duration.class), statusMatcher, childrenMatcher);
     }
 
     public static String format(CallStack callStack) {

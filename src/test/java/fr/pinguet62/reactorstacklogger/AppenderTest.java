@@ -2,14 +2,20 @@ package fr.pinguet62.reactorstacklogger;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 import reactor.util.context.Context;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToFlux;
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToMono;
+import static fr.pinguet62.reactorstacklogger.CallStack.Status.CANCELED;
+import static fr.pinguet62.reactorstacklogger.CallStack.Status.ERROR;
+import static fr.pinguet62.reactorstacklogger.CallStack.Status.SUCCESS;
 import static fr.pinguet62.reactorstacklogger.TestUtils.match;
 import static java.util.function.Predicate.isEqual;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,7 +38,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(is("single"), is(empty())));
+                        assertThat(rootCallStack, match(is("single"), is(SUCCESS), is(empty())));
                     }).then()
                     .verifyComplete();
         }
@@ -89,15 +95,35 @@ class AppenderTest {
         }
 
         @Test
-        void error() {
-            Exception exception = new RuntimeException("Oups!");
-            Mono<String> mono = Mono.<String>error(exception)
-                    .transform(appendCallStackToMono("single"));
+        void canceled() {
+            AtomicReference<Subscription> subscription = new AtomicReference<>();
+            Mono<String> mono = TestPublisher.<String>create()
+                    .mono()
+                    .transform(appendCallStackToMono("single"))
+                    .doOnSubscribe(subscription::set);
             StepVerifier.create(mono)
+                    .then(() -> subscription.get().cancel())
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, is(notNullValue()));
+                        assertThat(rootCallStack, match(is("single"), is(CANCELED), is(empty())));
+                    }).then()
+                    .thenCancel()
+                    .verify();
+        }
+
+        @Test
+        void error() {
+            Exception exception = new RuntimeException("Oups!");
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Mono<String> mono = testPublisher.mono()
+                    .transform(appendCallStackToMono("single"));
+            StepVerifier.create(mono)
+                    .then(() -> testPublisher.error(exception).complete())
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, match(is("single"), is(ERROR), is(empty())));
                     }).then()
                     .verifyErrorMatches(isEqual(exception));
         }
@@ -170,15 +196,35 @@ class AppenderTest {
         }
 
         @Test
-        void error() {
-            Exception exception = new RuntimeException("Oups!");
-            Flux<String> flux = Flux.<String>error(exception)
-                    .transform(appendCallStackToFlux("single"));
+        void canceled() {
+            AtomicReference<Subscription> subscription = new AtomicReference<>();
+            Flux<String> flux = TestPublisher.<String>create()
+                    .flux()
+                    .transform(appendCallStackToFlux("single"))
+                    .doOnSubscribe(subscription::set);
             StepVerifier.create(flux)
+                    .then(() -> subscription.get().cancel())
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, is(notNullValue()));
+                        assertThat(rootCallStack, match(is("single"), is(CANCELED), is(empty())));
+                    }).then()
+                    .thenCancel()
+                    .verify();
+        }
+
+        @Test
+        void error() {
+            Exception exception = new RuntimeException("Oups!");
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Flux<String> flux = testPublisher.flux()
+                    .transform(appendCallStackToFlux("single"));
+            StepVerifier.create(flux)
+                    .then(() -> testPublisher.error(exception).complete())
+                    .expectAccessibleContext()
+                    .assertThat(context -> {
+                        CallStack rootCallStack = context.get(StackContext.KEY);
+                        assertThat(rootCallStack, match(is("single"), is(ERROR), is(empty())));
                     }).then()
                     .verifyErrorMatches(isEqual(exception));
         }

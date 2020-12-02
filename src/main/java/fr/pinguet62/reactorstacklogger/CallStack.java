@@ -16,12 +16,19 @@ import static lombok.AccessLevel.PACKAGE;
 @ToString
 public class CallStack {
 
+    enum Status {
+        SUCCESS, CANCELED, ERROR;
+    }
+
     private final String name;
 
     private final List<CallStack> children;
 
     @Setter(PACKAGE)
     private Duration time;
+
+    @Setter(PACKAGE)
+    private Status status;
 
     CallStack(String name) {
         this.name = name;
