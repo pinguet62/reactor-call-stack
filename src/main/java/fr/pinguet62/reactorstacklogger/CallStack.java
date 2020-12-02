@@ -34,4 +34,14 @@ public class CallStack {
         this.name = name;
         this.children = new ArrayList<>();
     }
+
+    /**
+     * For testing.
+     */
+    CallStack(String name, Status status, Duration time, List<CallStack> children) {
+        this.name = name;
+        this.status = status;
+        this.time = time;
+        this.children = children;
+    }
 }
