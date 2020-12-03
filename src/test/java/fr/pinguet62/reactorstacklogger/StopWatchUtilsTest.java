@@ -2,15 +2,14 @@ package fr.pinguet62.reactorstacklogger;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -37,11 +36,10 @@ class StopWatchUtilsTest {
             AtomicReference<Clock> clock = new AtomicReference<>(Clock.fixed(now(), UTC));
 
             TestPublisher<String> testPublisher = create();
-            Mono<String> mono = testPublisher.mono()
-                    .transform(doOnTerminateTimeMono(clock::get, consumer));
-
+            Mono<String> mono = testPublisher.mono();
             Duration duration = ofMillis(123);
-            StepVerifier.create(mono)
+            StepVerifier.create(mono
+                    .transform(doOnTerminateTimeMono(clock::get, consumer)))
                     .then(() -> clock.set(Clock.offset(clock.get(), duration)))
                     .then(() -> testPublisher.emit("value").complete())
                     .expectNext("value")
@@ -50,14 +48,13 @@ class StopWatchUtilsTest {
         }
 
         @Test
-        void empty() {
+        void emptyPublisher() {
             Consumer<Duration> consumer = mock(Consumer.class);
             doNothing().when(consumer).accept(any());
 
-            Mono<Object> mono = Mono.empty()
-                    .transform(doOnTerminateTimeMono(consumer));
-
-            StepVerifier.create(mono)
+            Mono<Object> mono = Mono.empty();
+            StepVerifier.create(mono
+                    .transform(doOnTerminateTimeMono(consumer)))
                     .verifyComplete();
             verify(consumer).accept(any());
         }
@@ -67,27 +64,26 @@ class StopWatchUtilsTest {
             Consumer<Duration> consumer = mock(Consumer.class);
             doNothing().when(consumer).accept(any());
 
-            Mono<Object> mono = Mono.error(new IllegalArgumentException("test"))
-                    .transform(doOnTerminateTimeMono(consumer));
-
-            StepVerifier.create(mono)
+            Mono<Object> mono = Mono.error(new IllegalArgumentException("test"));
+            StepVerifier.create(mono
+                    .transform(doOnTerminateTimeMono(consumer)))
                     .verifyError(IllegalArgumentException.class);
             verify(consumer).accept(any());
         }
 
         @Test
-        void cancel() {
+        void canceled() {
             Consumer<Duration> consumer = mock(Consumer.class);
             doNothing().when(consumer).accept(any());
 
-            TestPublisher<Object> testPublisher = create();
-
-            MonoProcessor<Object> mono = testPublisher.mono()
-                    .transform(doOnTerminateTimeMono(consumer))
-                    .toProcessor();
-
-            mono.subscribe();
-            mono.cancel();
+            AtomicReference<Subscription> subscription = new AtomicReference<>();
+            Mono<Object> mono = TestPublisher.create()
+                    .mono()
+                    .doOnSubscribe(subscription::set);
+            StepVerifier.create(mono
+                    .transform(doOnTerminateTimeMono(consumer)))
+                    .thenCancel()
+                    .verify();
             verify(consumer).accept(any());
         }
     }
@@ -102,11 +98,10 @@ class StopWatchUtilsTest {
             AtomicReference<Clock> clock = new AtomicReference<>(Clock.fixed(now(), UTC));
 
             TestPublisher<String> testPublisher = create();
-            Flux<String> flux = testPublisher.flux()
-                    .transform(doOnTerminateTimeFlux(clock::get, consumer));
-
+            Flux<String> flux = testPublisher.flux();
             Duration duration = ofMillis(123);
-            StepVerifier.create(flux)
+            StepVerifier.create(flux
+                    .transform(doOnTerminateTimeFlux(clock::get, consumer)))
                     .then(() -> clock.set(Clock.offset(clock.get(), duration)))
                     .then(() -> testPublisher.emit("first", "second", "third").complete())
                     .expectNext("first", "second", "third")
@@ -115,14 +110,13 @@ class StopWatchUtilsTest {
         }
 
         @Test
-        void empty() {
+        void emptyPublisher() {
             Consumer<Duration> consumer = mock(Consumer.class);
             doNothing().when(consumer).accept(any());
 
-            Flux<Object> flux = Flux.empty()
-                    .transform(doOnTerminateTimeFlux(consumer));
-
-            StepVerifier.create(flux)
+            Flux<Object> flux = Flux.empty();
+            StepVerifier.create(flux
+                    .transform(doOnTerminateTimeFlux(consumer)))
                     .verifyComplete();
             verify(consumer).accept(any());
         }
@@ -136,28 +130,26 @@ class StopWatchUtilsTest {
                     .emit("first")
                     .error(new IllegalArgumentException("test"))
                     .emit("second")
-                    .flux()
-                    .transform(doOnTerminateTimeFlux(consumer));
-
-            StepVerifier.create(flux)
+                    .flux();
+            StepVerifier.create(flux
+                    .transform(doOnTerminateTimeFlux(consumer)))
                     .verifyError(IllegalArgumentException.class);
             verify(consumer).accept(any());
         }
 
         @Test
-        void cancel() {
+        void canceled() {
             Consumer<Duration> consumer = mock(Consumer.class);
             doNothing().when(consumer).accept(any());
 
-            TestPublisher<Object> testPublisher = create();
-
-            MonoProcessor<List<Object>> mono = testPublisher.flux()
-                    .transform(doOnTerminateTimeFlux(consumer))
-                    .collectList()
-                    .toProcessor();
-
-            mono.subscribe();
-            mono.cancel();
+            AtomicReference<Subscription> subscription = new AtomicReference<>();
+            Flux<Object> flux = TestPublisher.create()
+                    .flux()
+                    .doOnSubscribe(subscription::set);
+            StepVerifier.create(flux
+                    .transform(doOnTerminateTimeFlux(consumer)))
+                    .thenCancel()
+                    .verify();
             verify(consumer).accept(any());
         }
     }

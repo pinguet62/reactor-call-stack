@@ -9,6 +9,7 @@ import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 import reactor.util.context.Context;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static fr.pinguet62.reactorstacklogger.Appender.appendCallStackToFlux;
@@ -38,7 +39,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(is("single"), is(SUCCESS), is(empty())));
+                        assertThat(rootCallStack, match(is("single"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .verifyComplete();
         }
@@ -56,10 +57,8 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(
-                                is("parent"),
-                                contains(
-                                        match(is("child"), is(empty())))));
+                        assertThat(rootCallStack, match(is("parent"), is(SUCCESS), notNullValue(Duration.class), contains(
+                                match(is("child"), is(SUCCESS), notNullValue(Duration.class), is(empty())))));
                     }).then()
                     .verifyComplete();
         }
@@ -75,7 +74,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         assertThat(context.get("first"), is("A"));
-                        assertThat(context.get(StackContext.KEY), is(notNullValue()));
+                        assertThat(context.get(StackContext.KEY), match(is("<root>"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
                         assertThat(context.get("second"), is("B"));
                     }).then()
                     .verifyComplete();
@@ -83,13 +82,15 @@ class AppenderTest {
 
         @Test
         void emptyPublisher() {
-            Mono<String> mono = Mono.<String>empty()
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Mono<String> mono = testPublisher.mono()
                     .transform(appendCallStackToMono("single"));
             StepVerifier.create(mono)
+                    .then(testPublisher::complete)
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, is(notNullValue()));
+                        assertThat(rootCallStack, match(is("single"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .verifyComplete();
         }
@@ -97,8 +98,7 @@ class AppenderTest {
         @Test
         void canceled() {
             AtomicReference<Subscription> subscription = new AtomicReference<>();
-            Mono<String> mono = TestPublisher.<String>create()
-                    .mono()
+            Mono<String> mono = TestPublisher.<String>create().mono()
                     .transform(appendCallStackToMono("single"))
                     .doOnSubscribe(subscription::set);
             StepVerifier.create(mono)
@@ -106,7 +106,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(is("single"), is(CANCELED), is(empty())));
+                        assertThat(rootCallStack, match(is("single"), is(CANCELED), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .thenCancel()
                     .verify();
@@ -123,7 +123,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(is("single"), is(ERROR), is(empty())));
+                        assertThat(rootCallStack, match(is("single"), is(ERROR), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .verifyErrorMatches(isEqual(exception));
         }
@@ -140,7 +140,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(is("single"), is(empty())));
+                        assertThat(rootCallStack, match(is("single"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .verifyComplete();
         }
@@ -156,11 +156,9 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(
-                                is("parent"),
-                                contains(
-                                        match(is("child-1"), is(empty())),
-                                        match(is("child-2"), is(empty())))));
+                        assertThat(rootCallStack, match(is("parent"), is(SUCCESS), notNullValue(Duration.class), contains(
+                                match(is("child-1"), is(SUCCESS), notNullValue(Duration.class), is(empty())),
+                                match(is("child-2"), is(SUCCESS), notNullValue(Duration.class), is(empty())))));
                     }).then()
                     .verifyComplete();
         }
@@ -176,7 +174,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         assertThat(context.get("first"), is("A"));
-                        assertThat(context.get(StackContext.KEY), is(notNullValue()));
+                        assertThat(context.get(StackContext.KEY), match(is("<root>"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
                         assertThat(context.get("second"), is("B"));
                     }).then()
                     .verifyComplete();
@@ -184,13 +182,15 @@ class AppenderTest {
 
         @Test
         void emptyPublisher() {
-            Flux<String> flux = Flux.<String>empty()
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Flux<String> flux = testPublisher.flux()
                     .transform(appendCallStackToFlux("single"));
             StepVerifier.create(flux)
+                    .then(testPublisher::complete)
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, is(notNullValue()));
+                        assertThat(rootCallStack, match(is("single"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .verifyComplete();
         }
@@ -198,8 +198,7 @@ class AppenderTest {
         @Test
         void canceled() {
             AtomicReference<Subscription> subscription = new AtomicReference<>();
-            Flux<String> flux = TestPublisher.<String>create()
-                    .flux()
+            Flux<String> flux = TestPublisher.<String>create().flux()
                     .transform(appendCallStackToFlux("single"))
                     .doOnSubscribe(subscription::set);
             StepVerifier.create(flux)
@@ -207,7 +206,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(is("single"), is(CANCELED), is(empty())));
+                        assertThat(rootCallStack, match(is("single"), is(CANCELED), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .thenCancel()
                     .verify();
@@ -224,7 +223,7 @@ class AppenderTest {
                     .expectAccessibleContext()
                     .assertThat(context -> {
                         CallStack rootCallStack = context.get(StackContext.KEY);
-                        assertThat(rootCallStack, match(is("single"), is(ERROR), is(empty())));
+                        assertThat(rootCallStack, match(is("single"), is(ERROR), notNullValue(Duration.class), is(empty())));
                     }).then()
                     .verifyErrorMatches(isEqual(exception));
         }

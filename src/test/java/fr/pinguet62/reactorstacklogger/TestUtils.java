@@ -11,7 +11,7 @@ import static org.hamcrest.Matchers.any;
 
 public class TestUtils {
 
-    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Duration> timeMatcher, Matcher<Status> statusMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
+    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Status> statusMatcher, Matcher<Duration> timeMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
         return new TypeSafeDiagnosingMatcher<CallStack>() {
             @Override
             protected boolean matchesSafely(CallStack callStack, Description mismatch) {
@@ -20,14 +20,14 @@ public class TestUtils {
                     nameMatcher.describeMismatch(callStack.getName(), mismatch);
                     return false;
                 }
-                if (!timeMatcher.matches(callStack.getTime())) {
-                    mismatch.appendDescriptionOf(timeMatcher).appendText(" ");
-                    timeMatcher.describeMismatch(callStack.getTime(), mismatch);
-                    return false;
-                }
                 if (!statusMatcher.matches(callStack.getStatus())) {
                     mismatch.appendDescriptionOf(statusMatcher).appendText(" ");
                     statusMatcher.describeMismatch(callStack.getStatus(), mismatch);
+                    return false;
+                }
+                if (!timeMatcher.matches(callStack.getTime())) {
+                    mismatch.appendDescriptionOf(timeMatcher).appendText(" ");
+                    timeMatcher.describeMismatch(callStack.getTime(), mismatch);
                     return false;
                 }
                 if (!childrenMatcher.matches(callStack.getChildren())) {
@@ -43,8 +43,8 @@ public class TestUtils {
                 description
                         .appendText("(")
                         .appendText("message ").appendDescriptionOf(nameMatcher)
-                        .appendText(" and time ").appendDescriptionOf(timeMatcher)
                         .appendText(" and status ").appendDescriptionOf(statusMatcher)
+                        .appendText(" and time ").appendDescriptionOf(timeMatcher)
                         .appendText(" and children ").appendDescriptionOf(childrenMatcher)
                         .appendText(")");
             }
@@ -52,10 +52,6 @@ public class TestUtils {
     }
 
     public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
-        return match(nameMatcher, any(Duration.class), any(Status.class), childrenMatcher);
-    }
-
-    public static Matcher<CallStack> match(Matcher<String> nameMatcher, Matcher<Status> statusMatcher, Matcher<? extends Iterable<? extends CallStack>> childrenMatcher) {
-        return match(nameMatcher, any(Duration.class), statusMatcher, childrenMatcher);
+        return match(nameMatcher, any(Status.class), any(Duration.class), childrenMatcher);
     }
 }

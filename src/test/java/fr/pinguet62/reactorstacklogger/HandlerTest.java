@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,6 +25,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 class HandlerTest {
     @Nested
@@ -32,14 +33,14 @@ class HandlerTest {
         @Test
         void emptyContext() {
             Mono<String> mono = Mono.just("first");
-            AtomicBoolean called = new AtomicBoolean(false);
+            AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(mono.transform(doWithCallStackMono(rootCallStack -> {
-                assertThat(rootCallStack, match(is("<root>"), is(SUCCESS), is(empty())));
-                called.set(true);
+                assertThat(rootCallStack, match(is("<root>"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
+                called.incrementAndGet();
             })))
                     .expectNext("first")
                     .verifyComplete();
-            assertThat(called.get(), is(true));
+            assertThat(called.get(), is(1));
         }
 
         @Test
@@ -47,17 +48,15 @@ class HandlerTest {
             Mono<String> mono = Mono.just("first")
                     .flatMap(it -> Mono.just("second")
                             .transform(appendCallStackToMono("child")));
-            AtomicBoolean called = new AtomicBoolean(false);
+            AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(mono.transform(doWithCallStackMono(rootCallStack -> {
-                assertThat(rootCallStack, match(
-                        is("<root>"),
-                        contains(
-                                match(is("child"), is(empty())))));
-                called.set(true);
+                assertThat(rootCallStack, match(is("<root>"), is(SUCCESS), notNullValue(Duration.class), contains(
+                        match(is("child"), is(SUCCESS), notNullValue(Duration.class), is(empty())))));
+                called.incrementAndGet();
             })))
                     .expectNext("second")
                     .verifyComplete();
-            assertThat(called.get(), is(true));
+            assertThat(called.get(), is(1));
         }
 
         @Test
@@ -66,28 +65,30 @@ class HandlerTest {
             Mono<String> mono = TestPublisher.<String>create()
                     .mono()
                     .doOnSubscribe(subscription::set);
-            AtomicBoolean called = new AtomicBoolean(false);
+            AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(mono.transform(doWithCallStackMono(rootCallStack -> {
-                assertThat(rootCallStack, match(is("<root>"), is(CANCELED), is(empty())));
-                called.set(true);
+                assertThat(rootCallStack, match(is("<root>"), is(CANCELED), notNullValue(Duration.class), is(empty())));
+                called.incrementAndGet();
             })))
                     .then(() -> subscription.get().cancel())
                     .thenCancel()
                     .verify();
-            assertThat(called.get(), is(true));
+            assertThat(called.get(), is(1));
         }
 
         @Test
         void error() {
             Exception exception = new RuntimeException("Oups!");
-            Mono<String> mono = Mono.error(exception);
-            AtomicBoolean called = new AtomicBoolean(false);
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Mono<String> mono = testPublisher.mono();
+            AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(mono.transform(doWithCallStackMono(rootCallStack -> {
-                assertThat(rootCallStack, match(is("<root>"), is(ERROR), is(empty())));
-                called.set(true);
+                assertThat(rootCallStack, match(is("<root>"), is(ERROR), notNullValue(Duration.class), is(empty())));
+                called.incrementAndGet();
             })))
+                    .then(() -> testPublisher.error(exception))
                     .verifyErrorMatches(isEqual(exception));
-            assertThat(called.get(), is(true));
+            assertThat(called.get(), is(1));
         }
     }
 
@@ -98,7 +99,7 @@ class HandlerTest {
             Flux<String> flux = Flux.just("first");
             AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(flux.transform(doWithCallStackFlux(rootCallStack -> {
-                assertThat(rootCallStack, match(is("<root>"), is(SUCCESS), is(empty())));
+                assertThat(rootCallStack, match(is("<root>"), is(SUCCESS), notNullValue(Duration.class), is(empty())));
                 called.incrementAndGet();
             })))
                     .expectNext("first")
@@ -113,10 +114,8 @@ class HandlerTest {
                             .transform(appendCallStackToFlux("child")));
             AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(flux.transform(doWithCallStackFlux(rootCallStack -> {
-                assertThat(rootCallStack, match(
-                        is("<root>"),
-                        contains(
-                                match(is("child"), is(empty())))));
+                assertThat(rootCallStack, match(is("<root>"), is(SUCCESS), notNullValue(Duration.class), contains(
+                        match(is("child"), is(SUCCESS), notNullValue(Duration.class), is(empty())))));
                 called.incrementAndGet();
             })))
                     .expectNext("second", "third")
@@ -132,7 +131,7 @@ class HandlerTest {
                     .doOnSubscribe(subscription::set);
             AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(flux.transform(doWithCallStackFlux(rootCallStack -> {
-                assertThat(rootCallStack, match(is("<root>"), is(CANCELED), is(empty())));
+                assertThat(rootCallStack, match(is("<root>"), is(CANCELED), notNullValue(Duration.class), is(empty())));
                 called.incrementAndGet();
             })))
                     .then(() -> subscription.get().cancel())
@@ -144,12 +143,14 @@ class HandlerTest {
         @Test
         void error() {
             Exception exception = new RuntimeException("Oups!");
-            Flux<String> flux = Flux.error(exception);
+            TestPublisher<String> testPublisher = TestPublisher.create();
+            Flux<String> flux = testPublisher.flux();
             AtomicInteger called = new AtomicInteger(0);
             StepVerifier.create(flux.transform(doWithCallStackFlux(rootCallStack -> {
-                assertThat(rootCallStack, match(is("<root>"), is(ERROR), is(empty())));
+                assertThat(rootCallStack, match(is("<root>"), is(ERROR), notNullValue(Duration.class), is(empty())));
                 called.incrementAndGet();
             })))
+                    .then(() -> testPublisher.error(exception))
                     .verifyErrorMatches(isEqual(exception));
             assertThat(called.get(), is(1));
         }
