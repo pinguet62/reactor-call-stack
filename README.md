@@ -58,7 +58,7 @@ Use `appendCallStackToMono`/`appendCallStackToFlux` transformers:
 ```java
 Mono<Object> getProduct() {
     return doSomething()
-        .transform(Applicator.appendCallStackToMono("getProduct"));
+        .transform(Appender.appendCallStackToMono("getProduct"));
 }
 ```
 
@@ -88,11 +88,11 @@ asyncCall()
 class SampleController {
     Mono<Product> getProduct() {
         return doSomething1()
-            .transform(Applicator.appendCallStackToMono("getProduct"));
+            .transform(Appender.appendCallStackToMono("getProduct"));
     }
     Mono<Price> getPrice() {
         return doSomething2()
-            .transform(Applicator.appendCallStackToMono("getPrice"));
+            .transform(Appender.appendCallStackToMono("getPrice"));
     }
     
     @GetMapping
